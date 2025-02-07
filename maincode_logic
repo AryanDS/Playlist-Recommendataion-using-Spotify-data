@@ -1,0 +1,143 @@
+  observeEvent(input$submit, {
+    no_of_playlist = as.integer(input$no_playlist)
+    songs_per_playlist = as.integer(input$no_song_playlist)
+    total = no_of_playlist * songs_per_playlist
+    inputs = c(input$input1,input$input2, input$input3, input$input4)
+    
+    final_features = c('popularity', 'danceability', 'acousticness', 'energy')
+    new_data = data[,final_features] # Getting our target similarity columns
+    
+    similarity <- function(x) {
+      return (cosine(x, inputs))
+    }
+    
+    ss <- apply(new_data, 1, similarity)
+    new_data <- cbind(new_data, similar = ss)
+    
+    ordered <- new_data[order(-new_data$similar),]
+    subset = ordered[1:total,]
+    
+    subset <- subset[,final_features]
+    
+    # Performing clustering and assigning cluster number to our data
+    km.res <- kmeans(subset, no_of_playlist)
+    subset <- cbind(subset, cluster = as.vector(km.res$cluster))
+    
+    # Splitting the dataset based on cluster number
+    X <- split(subset, subset$cluster)
+    
+    table_features = c('popularity', 'danceability', 'acousticness', 'energy' , 'artist_name', "track_name" )
+
+    song_name = c('artist_name', "track_name" )
+    data_names = data[, song_name]
+
+    data_songs_merge = cbind(data_names, new_data)
+
+    ordered_ <- data_songs_merge[order(-data_songs_merge$similar),]
+    subset_songs = ordered_[1:total,]
+
+    artist_song_name = subset_songs[,song_name]
+
+    sub_subset_songs = subset_songs[,final_features]
+
+    km.res_songs <- kmeans(sub_subset_songs, no_of_playlist)
+    sub_subset_songs <- cbind(sub_subset_songs, cluster = as.vector(km.res_songs$cluster),artist_song_name)
+    sub_subset_songs_plot <- subset(sub_subset_songs, select = c("popularity","danceability","acousticness","energy", "cluster" ))
+
+ChatGPT said:
+This R code, likely part of a Shiny app, is an observeEvent block that responds to an event (e.g., a button click, represented here as input$submit). Its purpose is to process a dataset (data) and perform operations to generate clustered playlists based on user-specified criteria. Here's a detailed breakdown:
+
+Key Inputs:
+input$no_playlist: The number of playlists the user wants to generate.
+input$no_song_playlist: The number of songs per playlist.
+inputs: User-provided input for similarity calculations, such as weights for features like popularity, danceability, etc.
+data: The dataset, which includes features like popularity, danceability, and song/artist information.
+Steps in the Code:
+Get Total Songs:
+
+r
+Copy
+Edit
+total = no_of_playlist * songs_per_playlist
+Calculate the total number of songs needed across all playlists.
+
+Select Features for Similarity Calculation:
+
+r
+Copy
+Edit
+final_features = c('popularity', 'danceability', 'acousticness', 'energy')
+new_data = data[,final_features]
+Extract the columns of interest (final_features) from the dataset to focus on relevant features for similarity computation.
+
+Compute Similarity:
+
+r
+Copy
+Edit
+similarity <- function(x) {
+    return (cosine(x, inputs))
+}
+ss <- apply(new_data, 1, similarity)
+new_data <- cbind(new_data, similar = ss)
+Define a similarity function (likely cosine similarity) between a song's features and the user inputs.
+Apply this function to each row of new_data and store the similarity scores in a new column, similar.
+Order Songs by Similarity:
+
+r
+Copy
+Edit
+ordered <- new_data[order(-new_data$similar),]
+subset = ordered[1:total,]
+Sort songs by similarity in descending order.
+Extract the top total songs.
+Perform Clustering:
+
+r
+Copy
+Edit
+km.res <- kmeans(subset, no_of_playlist)
+subset <- cbind(subset, cluster = as.vector(km.res$cluster))
+X <- split(subset, subset$cluster)
+Apply k-means clustering to divide the subset of songs into no_of_playlist clusters.
+Assign cluster labels to the songs and split the data into separate clusters.
+Merge Song Details:
+
+r
+Copy
+Edit
+table_features = c('popularity', 'danceability', 'acousticness', 'energy', 'artist_name', "track_name")
+song_name = c('artist_name', "track_name")
+data_names = data[, song_name]
+data_songs_merge = cbind(data_names, new_data)
+Prepare a combined dataset including song names (artist_name, track_name) and the similarity scores.
+Order Songs with Names:
+
+r
+Copy
+Edit
+ordered_ <- data_songs_merge[order(-data_songs_merge$similar),]
+subset_songs = ordered_[1:total,]
+artist_song_name = subset_songs[,song_name]
+Sort songs with their names based on similarity.
+Extract the top total songs and their names.
+Cluster Songs Again:
+
+r
+Copy
+Edit
+sub_subset_songs = subset_songs[,final_features]
+km.res_songs <- kmeans(sub_subset_songs, no_of_playlist)
+sub_subset_songs <- cbind(sub_subset_songs, cluster = as.vector(km.res_songs$cluster), artist_song_name)
+Perform k-means clustering again for songs with features and names.
+Prepare Data for Plotting:
+
+r
+Copy
+Edit
+sub_subset_songs_plot <- subset(sub_subset_songs, select = c("popularity", "danceability", "acousticness", "energy", "cluster"))
+Extract specific columns to prepare the dataset for visualization (e.g., clustering plots).
+Purpose of the Code:
+Dynamically generate custom playlists by clustering songs based on similarity to user-provided preferences (e.g., popularity, danceability).
+Include artist and track names in the output, making it user-friendly.
+Produce cluster-specific visualizations or tables of songs.
